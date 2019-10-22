@@ -53,7 +53,9 @@ executable Shoot-M-Up
   ghc-options:         -Wall
 
   -- Modules included in this executable, other than Main.
-  -- other-modules:
+  other-modules:       Model,
+                       View,
+                       Controller
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -61,7 +63,7 @@ executable Shoot-M-Up
   -- Other library packages from which modules are imported.
   build-depends:       base ^>=4.12.0.0,
                        gloss,
-					             random
+                       random
 
   -- Directories containing source files.
   hs-source-dirs:      src
