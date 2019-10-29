@@ -1,77 +1,79 @@
--- point defines location
-type Point = (Float, Float)
+module Model where
 
-f :: Point -> a
-f (x, y) = x
+  -- point defines location
+  type Point = (Float, Float)
 
--- vector defines point manipulation
-type Vector = (Float, Float)
+  f :: Point -> a
+  f (x, y) = x
 
--- Health of an object
-type Health = Int
+  -- vector defines point manipulation
+  type Vector = (Float, Float)
 
--- Location of an object
-type Location = Point
+  -- Health of an object
+  type Health = Int
 
--- Speed of an object
-type Speed = Float
+  -- Location of an object
+  type Location = Point
 
--- Shooting bound of an enemy (use as: enemy.Y + bound and enemy.Y - bound)
-type ShootBound = Float
+  -- Speed of an object
+  type Speed = Float
 
--- Damage multiplier of the player
-type Upgrades = Int
+  -- Shooting bound of an enemy (use as: enemy.Y + bound and enemy.Y - bound)
+  type ShootBound = Float
 
--- The direction the object is moving in
-type Direction = Vector
+  -- Damage multiplier of the player
+  type Upgrades = Int
 
--- The score of the player
-type Score = Int
+  -- The direction the object is moving in
+  type Direction = Vector
 
--- The amout of /seconds/ since the game began
-type Time = Int
+  -- The score of the player
+  type Score = Int
 
-Instance Eq Point where
-  (x1, y1) == (x2, y2) = x1 == x2 && y1 == y2
-  (x1, y1) /= (x2, y2) = not (x1, y1) == (x2, y2)
+  -- The amout of /seconds/ since the game began
+  type Time = Int
 
--- The player
-data Player = Player {
-      Health
-    , Location
-    , Upgrades
-}
+  instance Eq Point where
+    (x1, y1) == (x2, y2) = x1 == x2 && y1 == y2
+    (x1, y1) /= (x2, y2) = not (x1, y1) == (x2, y2)
 
--- The data stored in an enemy
-data EnemyStats = Stats {
-      Health
-    , Location
-    , Speed
-    , ShootBound
-}
--- The enemy
-data Enemy = Standard EnemyStats | Boss EnemyStats
+  -- The player
+  data Player = Player {
+        getHealth :: Health
+      , getLocation :: Location
+      , getUpgrades :: Upgrades
+  }
 
--- The bullet
-data BulletType = EnemyBullet | PlayerBullet
-data Bullet = Bullet {
-      BulletType
-    , Location
-    , Speed
-    , Direction
-    , Damage :: Int
-}
+  -- The data stored in an enemy
+  data EnemyStats = Stats {
+        getHealth :: Health
+      , getLocation :: Location
+      , getSpeed :: Speed 
+      , getShootBound :: Shootbound
+  }
+  -- The enemy
+  data Enemy = Standard EnemyStats | Boss EnemyStats
 
--- The physical world, aka the playing field
-data World = World {
-      Player
-    , [Enemy]
-    , [Bullet]
-}
+  -- The bullet
+  data BulletType = EnemyBullet | PlayerBullet
+  data Bullet = Bullet {
+        getBulletType :: BulletType
+      , getLocation :: Location
+      , getSpeed :: Speed 
+      , getDirection :: Direction
+      , getDamage :: Int
+  }
 
--- The gamestate storing all the data.
-data GameState = GameState {
-      Score
-    , Time
-    , World
-}
+  -- The physical world, aka the playing field
+  data World = World {
+        getPlayer :: Player
+      , getEnemyList :: [Enemy]
+      , getBulletList :: [Bullet]
+  }
+
+  -- The gamestate storing all the data.
+  data GameState = GameState {
+        getScore :: Score
+      , getTime  :: Time
+      , getWorld :: World
+  }
