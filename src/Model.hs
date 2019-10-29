@@ -1,3 +1,5 @@
+module Model where
+
  -- point defines location
 type Point = (Float, Float)
 
