@@ -7,7 +7,11 @@ view :: GameState -> IO Picture
 view = return . viewPure
 
 viewPure :: GameState -> Picture
-viewPure gstate = case infoToShow gstate of
-  ShowNothing   -> blank
-  ShowANumber n -> color green (text (show n))
-  ShowAChar   c -> color green (text [c])
+viewPure (GameState s t w) = p <> q <> r
+  where 
+    p :: Picture
+    p = Translate -100.0 -100.0 (Text show s)
+    q :: Picture
+    q = Translate  100.0 -100.0 (Text show t)
+    r :: Picture
+    r = getPicture w
