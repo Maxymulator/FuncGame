@@ -1,16 +1,12 @@
 module Model where
 
- -- point defines location
-type Point = (Float, Float)
-
-f :: Point -> a
-f (x, y) = x
-
--- vector defines point manipulation
-type Vector = (Float, Float)
+import Graphics.Gloss
 
 -- Health of an object
 type Health = Int
+
+-- Damage of an object
+type Damage = Int
 
 -- Location of an object
 type Location = Point
@@ -33,10 +29,6 @@ type Score = Int
 -- The amout of /seconds/ since the game began
 type Time = Float
 
-instance Eq Point where
-  (x1, y1) == (x2, y2) = x1 == x2 && y1 == y2
-  (x1, y1) /= (x2, y2) = not (x1, y1) == (x2, y2)
-
 -- The player
 data Player = Player { getHealth :: Health
                      , getLocation :: Location
@@ -44,14 +36,17 @@ data Player = Player { getHealth :: Health
                      , getUpgrades :: Upgrades
 }
 
+-- The enemy
 -- The data stored in an enemy
 data EnemyStats = Stats { getHealth :: Health
                         , getLocation :: Location
                         , getSpeed :: Speed
                         , getShootBound :: ShootBound
 }
--- The enemy
-data Enemy = Standard { getStats :: EnemyStats} | Boss { getStats :: EnemyStats}
+-- The type of an enemy
+data EnemyType = Standard | Boss
+-- The constructor of the enemy
+data Enemy = Enemy {getType :: EnemyType, getStats :: EnemyStats}
 
 -- The bullet
 data BulletType = EnemyBullet | PlayerBullet
@@ -59,7 +54,7 @@ data Bullet = Bullet { getBulletType :: BulletType
                      , getLocation :: Location
                      , getSpeed :: Speed
                      , getDirection :: Direction
-                     , getDamage :: Int
+                     , getDamage :: Damage
 }
 
 -- The physical world, aka the playing field
@@ -73,28 +68,61 @@ data GameState = GameState { getScore :: Score
                            , getTime :: Time
                            , getWorld :: World
 }
+
+data HealthState = Alive | Dead
+
 --Type classes
-class Movable where
+class Movable a where
     move :: Vector -> a -> a 
 
-class Renderable where
-    undefined
+class Renderable a where
+    getPicture :: Picture
 
-class Killable where
-    undefined
+class Damageable a where
+    damage :: a -> Damage -> a
+    getHealthState :: a -> HealthState
 
 -- Instances 
+
+-- Movable instances    
 instance Movable Point where
-    move (Vector vx vy) (Point px py) = Point (px + vx) (py + vy)
+    move v p = v + p
 
 instance Movable Player where
     move v (Player h l s u) = Player h (move v l) s u
 
+instance Movable EnemyStats where
+    move v (Stats h l s sb) = Stats h (move v l) s sb
+    
 instance Movable Enemy where
-    move v (Enemy (Stats h l s sb)) = Enemy (Stats h (move v l) s sb)
+    move v (Enemy t s) = Enemy t (move v s)
 
 instance Movable Bullet where
     move v (Bullet bt l s dir d) = Bullet bt (move v l) s dir d
--- basic enemy types
 
-moveObject :: Movable a => a -> Vector -> a
+-- Renderable instances
+instance Renderable World where
+    getPicture = undefined
+
+instance Renderable Score where
+    getPicture = undefined
+
+instance Renderable Time where 
+    getPicture = undefined 
+
+-- Damageable instance
+instance Damageable Player where
+    damage (Player h l s u) dam = Player (h - dam) l s u
+    getHealthState p            | getHealth p <= 0 = Dead
+                                | otherwise        = Alive
+
+instance Damageable EnemyType where
+    damage (Stats h l s sb) dam = Stats (h - dam) l s sb
+    getHealthState s            | getHealth s <= 0 = Dead
+                                | otherwise        = Alive
+
+instance Damageable Enemy where
+    damage (Enemy t s) dam     = Enemy t (damage s dam)
+    getHealthState (Enemy t s) = getHealthState s
+
+-- basic enemy types
