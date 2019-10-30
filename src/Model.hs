@@ -82,6 +82,7 @@ class Movable a where
 class Renderable a where
     getPicture :: a -> Picture
 
+
 class Damageable a where
     damage :: a -> Damage -> a
     getHealthState :: a -> HealthState
@@ -105,13 +106,30 @@ instance Movable Bullet where
 
 -- Renderable instances
 instance Renderable World where
-    getPicture = undefined
+    getPicture (World pl es bs) = pl1 <> es2 <> bs2
+      where 
+      pl1 :: Player -> Picture
+      pl1 (Player _ l _ _) = Color white (Translate x y (Circle 10.0))
+        where (x, y) = l
+      es1 :: Enemy -> Picture
+      es1 (Enemy t s) | t == Boss   = Color black (Translate x y (Circle 15.0))
+                      | otherwise   = Color black (Translate x y (Circle 10.0))
+            where (h,l,s,sh) = getStats s
+                  (x,y)     = l
+      es2 :: [Enemy] -> Picture
+      es2 = mconcat . map es1 es
+      bs1 :: Bullet -> Picture
+      bs1 (Bullet b l _ _ _) | b == EnemyBullet  = Color black (Translate x y (Circle 1.0))
+                             | otherwise         = Color white (Translate x y (Circle 1.0))
+            where (x,y)     = l
+      bs2 :: [Bullet] -> Picture
+      bs2 = mconcat . map bs1 bs
 
 instance Renderable Score where
-    getPicture = undefined
+    getPicture s = Translate (-150.0) 150.0 (Text show s)
 
 instance Renderable Time where 
-    getPicture = undefined 
+    getPicture t = Translate   150.0 150.0 (Text show t)
 
 -- Damageable instance
 instance Damageable Player where

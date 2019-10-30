@@ -10,8 +10,8 @@ viewPure :: GameState -> Picture
 viewPure (GameState s t w) = p <> q <> r
   where 
     p :: Picture
-    p = Translate (-100.0) (-100.0) (Text (show s))
+    p = getPicture s
     q :: Picture
-    q = Translate  100.0 (-100.0) (Text (show t))
+    q = getPicture t
     r :: Picture
     r = getPicture w
