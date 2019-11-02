@@ -1,7 +1,7 @@
 module Controller where 
     
 import Graphics.Gloss
-import Graphics.Gloss.Interface.IO.Game
+-- import Graphics.Gloss.Interface.IO.Game -- commented because its apperently not needed, most likely not needed here
 import System.Random
 
 import Model
@@ -14,7 +14,11 @@ proposed game loop order:
 4) remove dead objects
 -}
 
-{- Movement-}
+{- Movement handling -}
+-- Moment handler for the gamestate
+handleMovement :: GameState -> GameState
+handleMovement (GameState s t world g rs) = GameState s t (worldUpdateMovement world) g rs
+
 -- Update all movement in the world
 worldUpdateMovement :: World -> World
 worldUpdateMovement (World player enemyList bulletList) = World movedPlayer movedEnemies movedBullets
@@ -64,7 +68,7 @@ moveBossEnemy l e = move (vector l (getLocation e)) e
 {-Spawn Enemies-}
 -- Spawn a single enemy of the given type
 spawnEnemy :: GameState -> EnemyType -> GameState
-spawnEnemy (GameState score time world gen) eType = GameState score time (newWorld world) newGen
+spawnEnemy (GameState score time world gen rs) eType = GameState score time (newWorld world) newGen rs
   where
     newWorld :: World -> World
     newWorld (World p es bs) = World p (newEnemy eType : es) bs
@@ -85,6 +89,10 @@ spawnEnemy (GameState score time world gen) eType = GameState score time (newWor
         randLocation = (175.0, fromIntegral (fst nextGen))
 
 {- Collision handling -}
+-- The gamestate collision handler
+handleCollision :: GameState -> GameState
+handleCollision (GameState s t world g rs) = GameState s t (worldUpdateCollision world) g rs
+
 -- Update the world with all the collisions taken care of
 worldUpdateCollision :: World -> World
 worldUpdateCollision (World player enemyList bulletList) = World updatedPlayer updatedEnemies updatedBullets
@@ -147,4 +155,33 @@ doesCollide o1 o2  | actualDistance > maxDistance = False
     maxDistance :: Float
     maxDistance = getRadius o1 + getRadius o2
 
---damageHandler :: Damagable a => a -> Damage -> a
+{- Cleanup: Object removal -}
+-- The cleanup handler for the gamestate
+handleCleanup :: GameState -> GameState
+handleCleanup (GameState initScore t initWorld g _) = GameState (updatedScore initWorld) t (worldUpdateCleanup initWorld) g $ updatedRS $ playerHealthState initWorld
+  where
+    updatedScore :: World -> Score
+    updatedScore (World _ es _) = scoreCounter (initScore, es)
+    playerHealthState :: World -> HealthState
+    playerHealthState (World p _ _) = getHealthState p
+    updatedRS :: HealthState -> RunningState
+    updatedRS Alive = Running
+    updatedRS Dead  = GameOver
+        
+-- Handle the cleanup in the world
+worldUpdateCleanup :: World -> World
+worldUpdateCleanup (World p es bs) = World p (listCleaner es) (listCleaner bs)
+
+-- Remove all dead objects from a given list
+listCleaner :: Damageable a => [a] -> [a]
+listCleaner [] = []
+listCleaner (x : xs) | getHealthState x == Alive = x : listCleaner xs
+                     | otherwise                 = listCleaner xs
+
+-- Count the score earned in the current state of the game and accumulate it
+scoreCounter :: (Score, [Enemy]) -> Score
+scoreCounter (n, [])                                                    = n
+scoreCounter (n, x@(Enemy Standard _) : xs) | getHealthState x == Alive = scoreCounter (n, xs)
+                                            | otherwise                 = scoreCounter (n + 25, xs)
+scoreCounter (n, x@(Enemy Boss _) : xs) | getHealthState x == Alive     = scoreCounter (n, xs)
+                                        | otherwise                     = scoreCounter (n + 100, xs)

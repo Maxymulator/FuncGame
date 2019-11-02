@@ -35,7 +35,7 @@ type Time = Float
 type Radius = Float
 
 -- the possible movement directions
-data Direction = N | NE | E | SE | S | SW | W | NW
+data Direction = N | NE | E | SE | S | SW | W | NW deriving (Eq)
 
 -- The player
 data Player = Player { getPHealth :: Health
@@ -54,13 +54,13 @@ data EnemyStats = Stats { getEHealth :: Health
                         , getERadius :: Radius
 }
 -- The type of an enemy
-data EnemyType = Standard | Boss
+data EnemyType = Standard | Boss deriving (Eq)
 -- The constructor of the enemy
 data Enemy = Enemy { getEnemyType :: EnemyType
                    , getStats :: EnemyStats}
 
 -- The bullet
-data BulletType = EnemyBullet | PlayerBullet
+data BulletType = EnemyBullet | PlayerBullet deriving (Eq)
 data Bullet = Bullet { getBulletType :: BulletType
                      , getBLocation :: Location
                      , getVector :: Vector
@@ -75,15 +75,18 @@ data World = World { getPlayer :: Player
                    , getBulletList :: [Bullet]
 }
 
+-- The runningState defines what is currently happening in the game, if its paused, being played, or game over
+data RunningState = Running | Paused | GameOver deriving (Eq)
 -- The gamestate storing all the data.
 data GameState = GameState { getScore :: Score
                            , getTime :: Time
                            , getWorld :: World
-                           , getGen   :: StdGen
+                           , getGen :: StdGen
+                           , getState :: RunningState
 }
 
 -- A datastructure defining if an object is either living or dead
-data HealthState = Alive | Dead
+data HealthState = Alive | Dead deriving (Eq)
 
 {- Type classes -}
 class Movable a where
@@ -220,7 +223,7 @@ initialWorld = World initialPlayer [] []
 
 -- initial gamestate
 --initialGameState :: GameState
---initialGameState = GameState 0 0 initialWorld getStdGen
+--initialGameState = GameState 0 0 initialWorld getStdGen Running
 
 -- neutral vector
 neutralVector :: Vector
