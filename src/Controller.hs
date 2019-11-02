@@ -65,3 +65,19 @@ moveBossEnemy l e = move (vector l (getELocation (getStats e))) e
     vector (_, yp) (_, yb) | yp < yb   = makeVector S (getESpeed (getStats e))
                            | yp > yb   = makeVector N (getESpeed (getStats e))
                            | otherwise = neutralVector
+
+{-Spawn Enemies-}
+spawnEnemy :: GameState -> EnemyType -> GameState
+spawnEnemy gameState enemy = (score, time, newWorld, newGen)
+        where 
+          (score, time, world, gen) = gameState
+          newWorld                  = (getPlayer world, newEnemyList, getBulletList world)
+          newEnemyList              = emenyNew : getEnemyList world
+          enemyNew                  = makeAnEnemy enemy
+          healthBoss                = 30 * (score / 100) + 3
+          healthStandard            = 10 * (score / 100) + 1
+          randLocation              = (175, fst(next gen))
+          newGen                    = snd(next gen)
+          makeAnEnemy :: EnemyType -> Enemy
+          makeAnEnemy enemy | enemy == Boss   = makeBossEnemy     healthBoss     (175.0, 0)
+                            | otherwise       = makeStandardEnemy healthStandard randLocation
