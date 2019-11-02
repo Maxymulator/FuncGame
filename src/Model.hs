@@ -65,7 +65,8 @@ data Bullet = Bullet { getBulletType :: BulletType
                      , getBLocation :: Location
                      , getVector :: Vector
                      , getDamage :: Damage
-                     , getRadius :: Radius
+                     , getBRadius :: Radius
+                     , getBHealth :: Health
 }
 
 -- The physical world, aka the playing field
@@ -122,63 +123,80 @@ instance Movable Enemy where
     getRadius (Enemy _ s) = getRadius s
 
 instance Movable Bullet where
-    move v (Bullet bt l vec d r) = Bullet bt ((GArithmetic.+) v l) vec d r
-    getLocation (Bullet _ l _ _ _) = l
+    move v (Bullet bt l vec d r h) = Bullet bt ((GArithmetic.+) v l) vec d r h
+    getLocation (Bullet _ l _ _ _ _) = l
     getSpeed _ = 3
-    getRadius (Bullet _ _ _ _ r) = r
+    getRadius (Bullet _ _ _ _ r _) = r
 
 -- Renderable instances
 instance Renderable World where
-    getPicture (World pl es bs) = renderPlayer <> renderEnemies <> renderBullets
+    getPicture (World pl es bs) = getPicture pl <> renderEnemies es <> renderBullets bs
       where 
-      renderPlayer :: Player -> Picture
-      renderPlayer = getPicture pl
       renderEnemies :: [Enemy] -> Picture
-      renderEnemies = mconcat . map getPicture es
+      renderEnemies = mconcat . map getPicture
       renderBullets :: [Bullet] -> Picture
-      renderBullets = mconcat . map getPicture bs
+      renderBullets = mconcat . map getPicture
 
 instance Renderable Player where
-    getPicture (Player _ l _ _ r) = Color white (Translate x y (Circle r))
-        where (x, y) = l
+    getPicture p = Color white $ Translate x y $ Circle $ getRadius p
+      where 
+        x :: Float
+        y :: Float
+        (x, y) = getLocation p
 
 instance Renderable Enemy where
-    getPicture (Enemy t s) | t == Boss   = Color black (Translate x y (Circle r))
-                           | otherwise   = Color black (Translate x y (Circle r))
-            where (_,l,_,_,r) = getStats s
-                  (x,y)     = l
-
+    getPicture e = Color (getColor (getEnemyType e)) $ Translate x y $ Circle $ getRadius e
+      where
+        x :: Float
+        y :: Float
+        (x, y) = getLocation e
+        getColor :: EnemyType -> Color
+        getColor Standard = black
+        getColor Boss     = red
+            
 instance Renderable Bullet where 
-    getPicture (Bullet b l _ _ _ r) | b == EnemyBullet  = Color black (Translate x y (Circle r))
-                                  | otherwise         = Color white (Translate x y (Circle r))
-            where (x,y)     = l
+    getPicture b = Color (getColor (getBulletType b)) $ Translate x y $ Circle $ getRadius b
+      where
+        x :: Float
+        y :: Float
+        (x, y) = getLocation b
+        getColor :: BulletType -> Color
+        getColor EnemyBullet  = black
+        getColor PlayerBullet = white
 
 instance Renderable Score where
-    getPicture s = Translate (-150.0) 150.0 (Text show s)
+    getPicture s = Translate (-150.0) 150.0 $ Text $ show s
 
 instance Renderable Time where 
-    getPicture t = Translate   150.0 150.0 (Text show t)
+    getPicture t = Translate 150.0 150.0 $ Text $ show t
 
 -- Damageable instance
 instance Damageable Player where
-    damage (Player h l s u r) dam = Player (h - dam) l s u r
-    kill (Player _ l s u r)       = Player 0 l s u r
-    getHealth (Player h _ _ _ _)  = h
-    getHealthState p              | getHealth p <= 0 = Dead
-                                  | otherwise         = Alive
+    damage (Player h l s u r) dam       = Player (h - dam) l s u r
+    kill (Player _ l s u r)             = Player 0 l s u r
+    getHealth                           = getPHealth
+    getHealthState p | getHealth p <= 0 = Dead
+                     | otherwise        = Alive
 
 instance Damageable EnemyStats where
-    damage (Stats h l s sb r) dam = Stats (h - dam) l s sb r
-    kill (Stats _ l s sb r)       = Stats 0 l s sb r
-    getHealth (Stats h _ _ _ _)   = h
-    getHealthState s              | getHealth s <= 0 = Dead
-                                  | otherwise         = Alive
+    damage (Stats h l s sb r) dam       = Stats (h - dam) l s sb r
+    kill (Stats _ l s sb r)             = Stats 0 l s sb r
+    getHealth                           = getEHealth
+    getHealthState s | getHealth s <= 0 = Dead
+                     | otherwise        = Alive
 
 instance Damageable Enemy where
     damage (Enemy t s) dam     = Enemy t (damage s dam)
     kill (Enemy t s)           = Enemy t (kill s)
     getHealth (Enemy _ s)      = getHealth s
     getHealthState (Enemy _ s) = getHealthState s
+
+instance Damageable Bullet where
+    damage (Bullet bt l vec d r h) dam = Bullet bt l vec d r (h - dam)
+    kill (Bullet bt l vec d r _) = Bullet bt l vec d r 0
+    getHealth                           = getBHealth
+    getHealthState b | getHealth b <= 0 = Dead
+                     | otherwise        = Alive
 
 {- initial values for types -}
 -- initial player
@@ -201,8 +219,8 @@ initialWorld :: World
 initialWorld = World initialPlayer [] []
 
 -- initial gamestate
-initialGameState :: GameState
-initialGameState = GameState 0 0 initialWorld getStdGen
+--initialGameState :: GameState
+--initialGameState = GameState 0 0 initialWorld getStdGen
 
 -- neutral vector
 neutralVector :: Vector
@@ -229,11 +247,11 @@ makeStandardEnemy h l = Enemy t s
 
 -- make a player bullet, moving right
 makePlayerBullet :: Location -> Damage -> Bullet
-makePlayerBullet l d = Bullet PlayerBullet l (makeVector E 3) d
+makePlayerBullet l d = Bullet PlayerBullet l (makeVector E 3) d bulletRadius 1
 
 -- make an enemy bullet, moving left
 makeEnemyBullet :: Location -> Damage -> Bullet
-makeEnemyBullet l d = Bullet EnemyBullet l (makeVector W 3) d
+makeEnemyBullet l d = Bullet EnemyBullet l (makeVector W 3) d bulletRadius 1
 
 -- make a vector, given a direction and speed
 makeVector :: Direction -> Speed -> Vector
@@ -272,4 +290,5 @@ damageOnEnemyCollision = 1
 distanceBetweenPoints :: Point -> Point -> Float
 distanceBetweenPoints p1 p2 = magV vector
   where
+    vector :: Vector
     vector = (GArithmetic.-) p1 p2
