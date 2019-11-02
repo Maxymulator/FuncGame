@@ -3,6 +3,7 @@
 module Model where
 
 import Graphics.Gloss
+import System.Random
 import Graphics.Gloss.Data.Vector
 import qualified Graphics.Gloss.Data.Point.Arithmetic as GArithmetic
 
@@ -77,6 +78,7 @@ data World = World { getPlayer :: Player
 data GameState = GameState { getScore :: Score
                            , getTime :: Time
                            , getWorld :: World
+                           , getGen   :: StdGen
 }
 
 -- A datastructure defining if an object is either living or dead
@@ -127,24 +129,29 @@ instance Movable Bullet where
 
 -- Renderable instances
 instance Renderable World where
-    getPicture (World pl es bs) = pl1 <> es2 <> bs2
+    getPicture (World pl es bs) = renderPlayer <> renderEnemies <> renderBullets
       where 
-      pl1 :: Player -> Picture
-      pl1 (Player _ l _ _) = Color white (Translate x y (Circle 10.0))
+      renderPlayer :: Player -> Picture
+      renderPlayer = getPicture pl
+      renderEnemies :: [Enemy] -> Picture
+      renderEnemies = mconcat . map getPicture es
+      renderBullets :: [Bullet] -> Picture
+      renderBullets = mconcat . map getPicture bs
+
+instance Renderable Player where
+    getPicture (Player _ l _ _ r) = Color white (Translate x y (Circle r))
         where (x, y) = l
-      es1 :: Enemy -> Picture
-      es1 (Enemy t s) | t == Boss   = Color black (Translate x y (Circle 15.0))
-                      | otherwise   = Color black (Translate x y (Circle 10.0))
-            where (h,l,s,sh) = getStats s
+
+instance Renderable Enemy where
+    getPicture (Enemy t s) | t == Boss   = Color black (Translate x y (Circle r))
+                           | otherwise   = Color black (Translate x y (Circle r))
+            where (_,l,_,_,r) = getStats s
                   (x,y)     = l
-      es2 :: [Enemy] -> Picture
-      es2 = mconcat . map es1 es
-      bs1 :: Bullet -> Picture
-      bs1 (Bullet b l _ _ _) | b == EnemyBullet  = Color black (Translate x y (Circle 1.0))
-                             | otherwise         = Color white (Translate x y (Circle 1.0))
+
+instance Renderable Bullet where 
+    getPicture (Bullet b l _ _ _ r) | b == EnemyBullet  = Color black (Translate x y (Circle r))
+                                  | otherwise         = Color white (Translate x y (Circle r))
             where (x,y)     = l
-      bs2 :: [Bullet] -> Picture
-      bs2 = mconcat . map bs1 bs
 
 instance Renderable Score where
     getPicture s = Translate (-150.0) 150.0 (Text show s)
@@ -195,7 +202,7 @@ initialWorld = World initialPlayer [] []
 
 -- initial gamestate
 initialGameState :: GameState
-initialGameState = GameState 0 0 initialWorld
+initialGameState = GameState 0 0 initialWorld getStdGen
 
 -- neutral vector
 neutralVector :: Vector
