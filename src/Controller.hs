@@ -1,7 +1,7 @@
 module Controller where 
     
 import Graphics.Gloss
--- import Graphics.Gloss.Interface.IO.Game -- commented because its apperently not needed, most likely not needed here
+import Graphics.Gloss.Interface.IO.Game 
 import System.Random
 
 import Model
@@ -13,6 +13,37 @@ proposed game loop order:
 3) check collision
 4) remove dead objects
 -}
+{- Iteration handling -}
+step :: Float -> GameState -> IO GameState
+step secs gs@(GameState _ _ _ _ Running) | timeCheck == 0 = return $ pureGameLoop gs { getTime = getTime gs + secs}
+                                         | otherwise      = return $ gs { getTime = getTime gs + secs}
+  where
+    timeCheck :: Int
+    timeCheck = round (getTime gs + secs) `mod` 5
+step _ gs@(GameState _ _ _ _ Paused)   = return gs       
+step _ gs@(GameState _ _ _ _ GameOver) = return gs     
+
+{- Input handling -}
+input :: Event -> GameState -> IO GameState
+input e gstate = return (inputKey e gstate)
+
+inputKey :: Event -> GameState -> GameState
+inputKey (EventKey (Char c) _ _ _) gs@(GameState _ _ _ _ Paused) | c == unPauseKey = gs {getState = Running}
+                                                                 | otherwise       = gs
+inputKey (EventKey (Char c) _ _ _) gs@(GameState _ _ _ _ Running) | c == upKey     = movePlayer (makeVector N (playerSpeed gs)) gs
+                                                                  | c == downKey   = movePlayer (makeVector S (playerSpeed gs)) gs
+                                                                  | c == shootKey  = undefined -- TODO: make the player shoot
+                                                                  | c == pauseKey  = gs {getState = Paused}
+                                                                  | c == quitKey   = undefined -- Exit the game through a crash (it's a feature, not a bug)
+                                                                  | otherwise      = gs
+  where
+    playerSpeed :: GameState -> Speed
+    playerSpeed = getSpeed . getPlayer . getWorld
+inputKey _ gs = gs
+
+{- Pure game loop -}
+pureGameLoop :: GameState -> GameState
+pureGameLoop = handleCleanup . handleCollision . handleMovement
 
 {- Movement handling -}
 -- Moment handler for the gamestate
@@ -21,10 +52,8 @@ handleMovement (GameState s t world g rs) = GameState s t (worldUpdateMovement w
 
 -- Update all movement in the world
 worldUpdateMovement :: World -> World
-worldUpdateMovement (World player enemyList bulletList) = World movedPlayer movedEnemies movedBullets
+worldUpdateMovement (World player enemyList bulletList) = World player movedEnemies movedBullets
   where
-    movedPlayer :: Player
-    movedPlayer = movePlayer player
     movedEnemies :: [Enemy]
     movedEnemies = moveEnemies (getLocation player) enemyList
     movedBullets :: [Bullet]
@@ -39,8 +68,19 @@ moveEnemies l (x@(Enemy Boss _) : xs)     = moveBossEnemy l x : moveEnemies l xs
 
 -- Individual object movement handlers
 -- Player movement
-movePlayer :: Player -> Player
-movePlayer = undefined
+movePlayer :: Vector -> GameState -> GameState
+movePlayer v gs@(GameState t s (World player es bs) g st) | playerY < upperLimit && playerY > lowerLimit = GameState t s (World (move v player) es bs) g st
+                                                          | playerY >= upperLimit = GameState t s (World (player {getPLocation = (playerX, upperLimit - 0.1)}) es bs) g st
+                                                          | playerY <= lowerLimit = GameState t s (World (player {getPLocation = (playerX, lowerLimit + 0.1)}) es bs) g st
+                                                          | otherwise                       = gs
+                | otherwise                       = gs
+  where
+    playerY :: Float
+    (playerX, playerY) = getLocation player
+    upperLimit :: Float
+    upperLimit = windowHeight / 2 - getSpeed player
+    lowerLimit :: Float
+    lowerLimit = - (windowHeight / 2 - getSpeed player)
 
 -- Bullet movement, moves in its own direction at a constant pace
 moveBullet :: Bullet -> Bullet
@@ -77,7 +117,7 @@ spawnEnemy (GameState score time world gen rs) eType = GameState score time (new
     newGen :: StdGen
     newGen = snd nextGen
     newEnemy :: EnemyType -> Enemy
-    newEnemy Boss = makeBossEnemy healthBoss (175.0, 0)
+    newEnemy Boss = makeBossEnemy healthBoss (windowWidth * 0.5 * 0.9, 0)
       where
         healthBoss :: Health
         healthBoss = 30 * (score `div` 100) + 3
@@ -86,7 +126,7 @@ spawnEnemy (GameState score time world gen rs) eType = GameState score time (new
         healthStandard :: Health
         healthStandard = 10 * (score `div` 100) + 1
         randLocation :: Location
-        randLocation = (175.0, fromIntegral (fst nextGen))
+        randLocation = (windowWidth * 0.5 * 0.95, fromIntegral (fst nextGen))
 
 {- Collision handling -}
 -- The gamestate collision handler
