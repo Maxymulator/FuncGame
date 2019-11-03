@@ -168,10 +168,13 @@ instance Renderable Bullet where
         getColor PlayerBullet = white
 
 instance Renderable Score where
-    getPicture s = Translate (-150.0) 150.0 $ Text $ show s
+    getPicture s = Translate (-windowWidth * 0.5 * 0.8) (windowHeight * 0.5 * 0.7) $ Text $ show s
 
 instance Renderable Time where 
-    getPicture t = Translate 150.0 150.0 $ Text $ show t
+    getPicture t = Translate (windowWidth * 0.5 * 0.65) (windowHeight * 0.5 * 0.7) $ Text $ show time
+      where
+        time :: Int
+        time = round t
 
 -- Damageable instance
 instance Damageable Player where
@@ -209,9 +212,9 @@ initialPlayer = Player h l s u r
     h :: Health
     h = 10
     l :: Location
-    l = (-150, 0)
+    l = (-windowWidth * 0.5 * 0.9, 0)
     s :: Speed
-    s = 1
+    s = 10
     u :: Upgrades
     u = 0.0
     r :: Radius
@@ -221,9 +224,12 @@ initialPlayer = Player h l s u r
 initialWorld :: World
 initialWorld = World initialPlayer [] []
 
+initialGen :: StdGen
+initialGen = undefined
+
 -- initial gamestate
---initialGameState :: GameState
---initialGameState = GameState 0 0 initialWorld getStdGen Running
+initialGameState :: GameState
+initialGameState = GameState 0 0 initialWorld initialGen Running
 
 -- neutral vector
 neutralVector :: Vector
@@ -287,6 +293,37 @@ bulletRadius = 1.0
 -- Damage when hitting a standard enemy
 damageOnEnemyCollision :: Int
 damageOnEnemyCollision = 1
+
+-- The key to move up
+upKey :: Char
+upKey = 'w'
+
+-- The key to move down
+downKey :: Char
+downKey = 's'
+
+-- The key to shoot
+shootKey :: Char
+shootKey = 'c'
+
+-- The key to pause the game
+pauseKey :: Char
+pauseKey = 'p'
+
+-- The key to unpause the game
+unPauseKey :: Char
+unPauseKey = 'o'
+
+-- The key to quit the game
+quitKey :: Char
+quitKey = 'q'
+
+-- The size of the window
+windowWidth :: Float
+windowWidth = 1280.0
+
+windowHeight :: Float
+windowHeight = 720.0
 
 {- Calculations -}
 -- Calc distance between two points
