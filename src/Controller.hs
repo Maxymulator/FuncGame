@@ -93,25 +93,22 @@ enemyShoots :: GameState -> GameState
 enemyShoots (GameState score time world gen rs) = (GameState score time (newWorld world) gen rs)
   where
     newWorld :: World -> World
-    newWorld (World p es bs) = World p es addedBullets
+    newWorld (World p es _) = World p es addedBullets
     createBullet :: Enemy -> Bullet
-    createBullet enemy = makeEnemyBullet (getLocation enemy) (damage (getEnemyType enemy))
-    damage :: EnemyType -> Damage
-    damage enemytype | enemytype == Boss  = 3
-                     | otherwise          = 1
-    addedBullets :: [Enemy] -> [Bullet]
-    addedBullets = map createBullet
+    createBullet enemy = makeEnemyBullet (getLocation enemy) 2
+    addedBullets :: [Bullet]
+    addedBullets = map createBullet (getEnemyList world)
 
 --Player shooting
 playerShoots :: GameState -> GameState
 playerShoots (GameState score time world gen rs) = (GameState score time (newWorld world) gen rs)
   where
     newWorld :: World -> World
-    newWorld (World p es bs) = World p es addedBullets
+    newWorld (World p es _) = World p es addedBullets
     createBullet :: Player -> Bullet
     createBullet p = makePlayerBullet (getLocation p) 3
     addedBullets :: [Bullet]
-    addedBullets = (createBullet p) : bs
+    addedBullets = (createBullet (getPlayer world)) : (getBulletList world)
 
 {- Collision handling -}
 -- The gamestate collision handler
