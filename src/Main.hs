@@ -11,6 +11,6 @@ main = playIO (InWindow "Shoot 'em Up" (round windowWidth, round windowHeig
               green            -- Background color
               10               -- Frames per second
               initialGameState -- Initial state
-              view             -- View function
+              view             -- View function
               input            -- Event function
               step             -- Step function

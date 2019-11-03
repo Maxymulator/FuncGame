@@ -141,14 +141,14 @@ instance Renderable World where
       renderBullets = mconcat . map getPicture
 
 instance Renderable Player where
-    getPicture p = Color white $ Translate x y $ Circle $ getRadius p
+    getPicture p = Color white $ Translate x y $ circleSolid $ getRadius p
       where 
         x :: Float
         y :: Float
         (x, y) = getLocation p
 
 instance Renderable Enemy where
-    getPicture e = Color (getColor (getEnemyType e)) $ Translate x y $ Circle $ getRadius e
+    getPicture e = Color (getColor (getEnemyType e)) $ Translate x y $ circleSolid $ getRadius e
       where
         x :: Float
         y :: Float
@@ -158,7 +158,7 @@ instance Renderable Enemy where
         getColor Boss     = red
             
 instance Renderable Bullet where 
-    getPicture b = Color (getColor (getBulletType b)) $ Translate x y $ Circle $ getRadius b
+    getPicture b = Color (getColor (getBulletType b)) $ Translate x y ( ThickCircle (getRadius b) 4)
       where
         x :: Float
         y :: Float
@@ -276,19 +276,19 @@ makeVector SW s = ((-s)/2,(-s)/2)
 {- Constants -}
 -- The radius of the player circle
 playerCircleRadius :: Float
-playerCircleRadius = 10.0
+playerCircleRadius = 30.0
 
 -- THe radius of the standard enemy circle
 enemyStndCircleRadius :: Float
-enemyStndCircleRadius = 10.0
+enemyStndCircleRadius = 20.0
 
 -- The radius of the standard enemy circle
 enemyBossCircleRadius :: Float
-enemyBossCircleRadius = 15.0
+enemyBossCircleRadius = 40.0
 
 -- The radius of the bullet
 bulletRadius :: Float
-bulletRadius = 1.0
+bulletRadius = 8.0
 
 -- Damage when hitting a standard enemy
 damageOnEnemyCollision :: Int
