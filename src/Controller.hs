@@ -65,7 +65,7 @@ moveBossEnemy l e = move (vector l (getLocation e)) e
                            | yp > yb   = makeVector N $ getSpeed e
                            | otherwise = neutralVector
 
-{-Spawn Enemies-}
+{-Spawn Enemies/Create Bullets-}
 -- Spawn a single enemy of the given type
 spawnEnemy :: GameState -> EnemyType -> GameState
 spawnEnemy (GameState score time world gen rs) eType = GameState score time (newWorld world) newGen rs
@@ -87,6 +87,31 @@ spawnEnemy (GameState score time world gen rs) eType = GameState score time (new
         healthStandard = 10 * (score `div` 100) + 1
         randLocation :: Location
         randLocation = (175.0, fromIntegral (fst nextGen))
+
+--Enemy bullets
+enemyShoots :: GameState -> GameState
+enemyShoots (GameState score time world gen rs) = (GameState score time (newWorld world) gen rs)
+  where
+    newWorld :: World -> World
+    newWorld (World p es bs) = World p es addedBullets
+    createBullet :: Enemy -> Bullet
+    createBullet enemy = makeEnemyBullet (getLocation enemy) (damage (getEnemyType enemy))
+    damage :: EnemyType -> Damage
+    damage enemytype | enemytype == Boss  = 3
+                     | otherwise          = 1
+    addedBullets :: [Enemy] -> [Bullet]
+    addedBullets = map createBullet
+
+--Player shooting
+playerShoots :: GameState -> GameState
+playerShoots (GameState score time world gen rs) = (GameState score time (newWorld world) gen rs)
+  where
+    newWorld :: World -> World
+    newWorld (World p es bs) = World p es addedBullets
+    createBullet :: Player -> Bullet
+    createBullet p = makePlayerBullet (getLocation p) 3
+    addedBullets :: [Bullet]
+    addedBullets = (createBullet p) : bs
 
 {- Collision handling -}
 -- The gamestate collision handler
@@ -110,7 +135,7 @@ collidePlayer pl es bs = checkPwithE (checkPwithB pl bs) es
   where
     checkPwithB :: Player -> [Bullet] -> Player
     checkPwithB p []                                     = p
-    checkPwithB p (Bullet PlayerBullet _ _ _ _ _ : xs) = checkPwithB p xs
+    checkPwithB p (Bullet PlayerBullet _ _ _ _ _ : xs)   = checkPwithB p xs
     checkPwithB p (x:xs) | doesCollide p x               = checkPwithB (damage p (getDamage x)) xs
                          | otherwise                     = checkPwithB p xs
     checkPwithE :: Player -> [Enemy] -> Player
