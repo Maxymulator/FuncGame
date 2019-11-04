@@ -15,13 +15,9 @@ proposed game loop order:
 -}
 {- Iteration handling -}
 step :: Float -> GameState -> IO GameState
-step secs gs@(GameState _ _ _ _ Running) | timeCheck == 0 = return $ pureGameLoop gs { getTime = getTime gs + secs}
-                                         | otherwise      = return $ gs { getTime = getTime gs + secs}
-  where
-    timeCheck :: Int
-    timeCheck = round (getTime gs + secs) `mod` 5
-step _ gs@(GameState _ _ _ _ Paused)   = return gs       
-step _ gs@(GameState _ _ _ _ GameOver) = return gs     
+step secs gs@(GameState _ _ _ _ Running) = return $ pureGameLoop gs { getTime = getTime gs + secs}
+step _ gs@(GameState _ _ _ _ Paused)     = return gs       
+step _ gs@(GameState _ _ _ _ GameOver)   = return gs
 
 {- Input handling -}
 input :: Event -> GameState -> IO GameState
@@ -32,7 +28,7 @@ inputKey (EventKey (Char c) _ _ _) gs@(GameState _ _ _ _ Paused) | c == unPauseK
                                                                  | otherwise       = gs
 inputKey (EventKey (Char c) _ _ _) gs@(GameState _ _ _ _ Running) | c == upKey     = movePlayer (makeVector N (playerSpeed gs)) gs
                                                                   | c == downKey   = movePlayer (makeVector S (playerSpeed gs)) gs
-                                                                  | c == shootKey  = undefined -- TODO: make the player shoot
+                                                                  | c == shootKey  = playerShoots gs -- TODO: make the player shoot
                                                                   | c == pauseKey  = gs {getState = Paused}
                                                                   | c == quitKey   = undefined -- Exit the game through a crash (it's a feature, not a bug)
                                                                   | otherwise      = gs
@@ -133,25 +129,22 @@ enemyShoots :: GameState -> GameState
 enemyShoots (GameState score time world gen rs) = (GameState score time (newWorld world) gen rs)
   where
     newWorld :: World -> World
-    newWorld (World p es bs) = World p es addedBullets
+    newWorld (World p es _) = World p es addedBullets
     createBullet :: Enemy -> Bullet
-    createBullet enemy = makeEnemyBullet (getLocation enemy) (damage (getEnemyType enemy))
-    damage :: EnemyType -> Damage
-    damage enemytype | enemytype == Boss  = 3
-                     | otherwise          = 1
-    addedBullets :: [Enemy] -> [Bullet]
-    addedBullets = map createBullet
+    createBullet enemy = makeEnemyBullet (getLocation enemy) 2
+    addedBullets :: [Bullet]
+    addedBullets = map createBullet (getEnemyList world)
 
 --Player shooting
 playerShoots :: GameState -> GameState
 playerShoots (GameState score time world gen rs) = (GameState score time (newWorld world) gen rs)
   where
     newWorld :: World -> World
-    newWorld (World p es bs) = World p es addedBullets
+    newWorld (World p es _) = World p es addedBullets
     createBullet :: Player -> Bullet
     createBullet p = makePlayerBullet (getLocation p) 3
     addedBullets :: [Bullet]
-    addedBullets = (createBullet p) : bs
+    addedBullets = (createBullet (getPlayer world)) : (getBulletList world)
 
 {- Collision handling -}
 -- The gamestate collision handler
