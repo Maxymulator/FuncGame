@@ -30,12 +30,18 @@ inputKey (EventKey (Char c) _ _ _) gs@(GameState _ _ _ _ Running) | c == upKey  
                                                                   | c == downKey   = movePlayer (makeVector S (playerSpeed gs)) gs
                                                                   | c == shootKey  = playerShoots gs -- TODO: make the player shoot
                                                                   | c == pauseKey  = gs {getState = Paused}
-                                                                  | c == quitKey   = undefined -- Exit the game through a crash (it's a feature, not a bug)
+                                                                  | c == quitKey   = exitGame gs
                                                                   | otherwise      = gs
   where
     playerSpeed :: GameState -> Speed
     playerSpeed = getSpeed . getPlayer . getWorld
 inputKey _ gs = gs
+
+{- Saving and loading the game -}
+
+{- Exiting the game -}
+exitGame :: GameState -> GameState
+exitGame = undefined -- Exit the game through a crash (it's a feature, not a bug we swear)
 
 {- Pure game loop -}
 pureGameLoop :: GameState -> GameState
@@ -126,10 +132,10 @@ spawnEnemy (GameState score time world gen rs) eType = GameState score time (new
 
 --Enemy bullets
 enemyShoots :: GameState -> GameState
-enemyShoots (GameState score time world gen rs) = (GameState score time (newWorld world) gen rs)
+enemyShoots (GameState score time world gen rs) = GameState score time (newWorld world) gen rs
   where
     newWorld :: World -> World
-    newWorld (World p es _) = World p es addedBullets
+    newWorld (World p es bs) = World p es (addedBullets bs)
     createBullet :: Enemy -> Bullet
     createBullet enemy = makeEnemyBullet (getLocation enemy) 2
     addedBullets :: [Bullet]
@@ -137,14 +143,12 @@ enemyShoots (GameState score time world gen rs) = (GameState score time (newWorl
 
 --Player shooting
 playerShoots :: GameState -> GameState
-playerShoots (GameState score time world gen rs) = (GameState score time (newWorld world) gen rs)
+playerShoots (GameState score time world gen rs) = GameState score time (newWorld world) gen rs
   where
     newWorld :: World -> World
-    newWorld (World p es _) = World p es addedBullets
+    newWorld (World p es bs) = World p es (createBullet p : bs)
     createBullet :: Player -> Bullet
     createBullet p = makePlayerBullet (getLocation p) 3
-    addedBullets :: [Bullet]
-    addedBullets = (createBullet (getPlayer world)) : (getBulletList world)
 
 {- Collision handling -}
 -- The gamestate collision handler
