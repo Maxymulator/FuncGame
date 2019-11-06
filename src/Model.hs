@@ -43,7 +43,7 @@ data Player = Player { getPHealth :: Health
                      , getPSpeed :: Speed
                      , getUpgrades :: Upgrades
                      , getPRadius :: Radius
-}
+} deriving (Read, Show)
 
 -- The enemy
 -- The data stored in an enemy
@@ -52,41 +52,42 @@ data EnemyStats = Stats { getEHealth :: Health
                         , getESpeed :: Speed
                         , getShootBound :: ShootBound
                         , getERadius :: Radius
-}
+} deriving (Read, Show)
 -- The type of an enemy
-data EnemyType = Standard | Boss deriving (Eq)
+data EnemyType = Standard | Boss deriving (Eq, Read, Show)
 -- The constructor of the enemy
 data Enemy = Enemy { getEnemyType :: EnemyType
-                   , getStats :: EnemyStats}
+                   , getStats :: EnemyStats
+} deriving (Read, Show)
 
 -- The bullet
-data BulletType = EnemyBullet | PlayerBullet deriving (Eq)
+data BulletType = EnemyBullet | PlayerBullet deriving (Eq, Read, Show)
 data Bullet = Bullet { getBulletType :: BulletType
                      , getBLocation :: Location
                      , getVector :: Vector
                      , getDamage :: Damage
                      , getBRadius :: Radius
                      , getBHealth :: Health
-}
+} deriving (Read, Show)
 
 -- The physical world, aka the playing field
 data World = World { getPlayer :: Player
                    , getEnemyList :: [Enemy]
                    , getBulletList :: [Bullet]
-}
+} deriving (Read, Show)
 
 -- The runningState defines what is currently happening in the game, if its paused, being played, or game over
-data RunningState = Running | Paused | GameOver deriving (Eq)
+data RunningState = Running | Paused | GameOver deriving (Eq, Read, Show)
 -- The gamestate storing all the data.
 data GameState = GameState { getScore :: Score
                            , getTime :: Time
                            , getWorld :: World
                            , getGen :: StdGen
                            , getState :: RunningState
-}
+} deriving (Read, Show)
 
 -- A datastructure defining if an object is either living or dead
-data HealthState = Alive | Dead deriving (Eq)
+data HealthState = Alive | Dead deriving (Eq, Read, Show)
 
 {- Type classes -}
 class Movable a where
@@ -158,7 +159,7 @@ instance Renderable Enemy where
         getColor Boss     = red
             
 instance Renderable Bullet where 
-    getPicture b = Color (getColor (getBulletType b)) $ Translate x y ( ThickCircle (getRadius b) 4)
+    getPicture b = Color (getColor (getBulletType b)) $ Translate x y $ circleSolid $ getRadius b
       where
         x :: Float
         y :: Float
@@ -225,7 +226,7 @@ initialWorld :: World
 initialWorld = World initialPlayer [] []
 
 initialGen :: StdGen
-initialGen = undefined
+initialGen = mkStdGen 5
 
 -- initial gamestate
 initialGameState :: GameState
@@ -314,9 +315,13 @@ pauseKey = 'p'
 unPauseKey :: Char
 unPauseKey = 'o'
 
--- The key to quit the game
+-- The key to save and quit the game
 quitKey :: Char
 quitKey = 'q'
+
+-- The key to load the previous save
+loadKey :: Char
+loadKey = 'l'
 
 -- The size of the window
 windowWidth :: Float

@@ -63,7 +63,8 @@ executable Shoot-M-Up
   -- Other library packages from which modules are imported.
   build-depends:       base ^>=4.12.0.0,
                        gloss,
-                       random
+                       random,
+                       safe
 
   -- Directories containing source files.
   hs-source-dirs:      src

@@ -3,6 +3,8 @@ module Controller where
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game 
 import System.Random
+import System.Exit
+import Safe
 
 import Model
 
@@ -21,29 +23,46 @@ step _ gs@(GameState _ _ _ _ GameOver)   = return gs
 
 {- Input handling -}
 input :: Event -> GameState -> IO GameState
+-- handle IO related key presses in the IO part
+input e@(EventKey (Char c) Down _ _) gstate | c == quitKey = saveGame gstate >>= exitGame
+                                            | c == loadKey = loadGame
+                                            | otherwise    = return (inputKey e gstate)
+-- handle pure input key presses in the pure part
 input e gstate = return (inputKey e gstate)
 
+-- Handle key inputs which result in pure computations
 inputKey :: Event -> GameState -> GameState
-inputKey (EventKey (Char c) _ _ _) gs@(GameState _ _ _ _ Paused) | c == unPauseKey = gs {getState = Running}
-                                                                 | otherwise       = gs
-inputKey (EventKey (Char c) _ _ _) gs@(GameState _ _ _ _ Running) | c == upKey     = movePlayer (makeVector N (playerSpeed gs)) gs
-                                                                  | c == downKey   = movePlayer (makeVector S (playerSpeed gs)) gs
-                                                                  | c == shootKey  = playerShoots gs -- TODO: make the player shoot
-                                                                  | c == pauseKey  = gs {getState = Paused}
-                                                                  | c == quitKey   = exitGame gs
-                                                                  | otherwise      = gs
+inputKey (EventKey (Char c) Down _ _) gs@(GameState _ _ _ _ Paused) | c == unPauseKey = gs {getState = Running}
+                                                                    | otherwise       = gs
+inputKey (EventKey (Char c) Down _ _) gs@(GameState _ _ _ _ Running) | c == upKey     = movePlayer (makeVector N (playerSpeed gs)) gs
+                                                                     | c == downKey   = movePlayer (makeVector S (playerSpeed gs)) gs
+                                                                     | c == shootKey  = playerShoots gs
+                                                                     | c == pauseKey  = gs {getState = Paused}
+                                                                     | otherwise      = gs
   where
     playerSpeed :: GameState -> Speed
     playerSpeed = getSpeed . getPlayer . getWorld
 inputKey _ gs = gs
 
 {- Saving and loading the game -}
+-- Save the gamestate to "save.txt"
+saveGame :: GameState -> IO ()
+saveGame gs = writeFile "save.txt" (show gs) -- Save the current gamestate to a file
+
+-- Load the game safely, if the "safe.txt" file doesnt contain a nice gamestate, it will return the initialGameState instead
+loadGame :: IO GameState
+loadGame = do
+    contents <- readFile "save.txt"
+    let gs = readDef initialGameState contents
+    return gs
 
 {- Exiting the game -}
-exitGame :: GameState -> GameState
-exitGame = undefined -- Exit the game through a crash (it's a feature, not a bug we swear)
+-- Exit the game safely
+exitGame :: () -> IO GameState -- type definition to make it sequentiable with the savegame feature, such that a bind forces computation of both.
+exitGame _ = exitSuccess 
 
 {- Pure game loop -}
+-- Run the pure part of the code
 pureGameLoop :: GameState -> GameState
 pureGameLoop = handleCleanup . handleCollision . handleMovement
 
@@ -135,9 +154,9 @@ enemyShoots :: GameState -> GameState
 enemyShoots (GameState score time world gen rs) = GameState score time (newWorld world) gen rs
   where
     newWorld :: World -> World
-    newWorld (World p es bs) = World p es (addedBullets bs)
+    newWorld (World p es bs) = World p es (addedBullets ++ bs)
     createBullet :: Enemy -> Bullet
-    createBullet enemy = makeEnemyBullet (getLocation enemy) 2
+    createBullet enemy = makeEnemyBullet (getLocation enemy) 1
     addedBullets :: [Bullet]
     addedBullets = map createBullet (getEnemyList world)
 
@@ -148,7 +167,9 @@ playerShoots (GameState score time world gen rs) = GameState score time (newWorl
     newWorld :: World -> World
     newWorld (World p es bs) = World p es (createBullet p : bs)
     createBullet :: Player -> Bullet
-    createBullet p = makePlayerBullet (getLocation p) 3
+    createBullet p = makePlayerBullet (getLocation p) (playerDamage p)
+    playerDamage :: Player -> Damage 
+    playerDamage p = round (1 * getUpgrades p)
 
 {- Collision handling -}
 -- The gamestate collision handler
