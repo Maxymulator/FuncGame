@@ -64,12 +64,33 @@ exitGame _ = exitSuccess
 {- Pure game loop -}
 -- Run the pure part of the code
 pureGameLoop :: GameState -> GameState
-pureGameLoop = handleCleanup . handleCollision . handleMovement
+pureGameLoop = handleCleanup . handleCollision . handleMovement . handleSpawning . handleShooting
 
 {- Movement handling -}
 -- Moment handler for the gamestate
 handleMovement :: GameState -> GameState
 handleMovement (GameState s t world g rs) = GameState s t (worldUpdateMovement world) g rs
+
+{- Enemy behaviour -}
+-- When an enemy will spawn
+handleSpawning :: GameState -> GameState
+handleSpawning (GameState s t world g rs) | timed `mod` 11 == 0  = spawnEnemy (GameState s t world g rs) Standard
+                                          | (s+1) `mod` 1001 == 0  = spawnEnemy (GameState (s+1) t world g rs) Boss
+                                          | otherwise              = (GameState s t world g rs)
+                 where
+                  timed :: Integer
+                  timed = round t
+                                      
+                                  
+                                          
+
+-- When an enemy will shoot
+handleShooting :: GameState -> GameState
+handleShooting (GameState s t world g rs) | timed `mod` 6 == 0  = enemyShoots (GameState s t world g rs)
+                                          | otherwise             = (GameState s t world g rs)
+                     where
+                       timed :: Integer
+                       timed = round t
 
 -- Update all movement in the world
 worldUpdateMovement :: World -> World
@@ -94,8 +115,7 @@ movePlayer v gs@(GameState t s (World player es bs) g st) | playerY < upperLimit
                                                           | playerY >= upperLimit = GameState t s (World (player {getPLocation = (playerX, upperLimit - 0.1)}) es bs) g st
                                                           | playerY <= lowerLimit = GameState t s (World (player {getPLocation = (playerX, lowerLimit + 0.1)}) es bs) g st
                                                           | otherwise                       = gs
-                | otherwise                       = gs
-  where
+   where
     playerY :: Float
     (playerX, playerY) = getLocation player
     upperLimit :: Float
@@ -141,13 +161,13 @@ spawnEnemy (GameState score time world gen rs) eType = GameState score time (new
     newEnemy Boss = makeBossEnemy healthBoss (windowWidth * 0.5 * 0.9, 0)
       where
         healthBoss :: Health
-        healthBoss = 30 * (score `div` 100) + 3
+        healthBoss = 20 * (score `div` 100) + 3
     newEnemy Standard = makeStandardEnemy healthStandard randLocation
       where
         healthStandard :: Health
         healthStandard = 10 * (score `div` 100) + 1
         randLocation :: Location
-        randLocation = (windowWidth * 0.5 * 0.95, fromIntegral (fst nextGen))
+        randLocation = (windowWidth * 0.5 * 0.95, 0)
 
 --Enemy bullets
 enemyShoots :: GameState -> GameState
