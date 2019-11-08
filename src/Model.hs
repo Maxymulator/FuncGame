@@ -217,7 +217,7 @@ initialPlayer = Player h l s u r
     s :: Speed
     s = 10
     u :: Upgrades
-    u = 0.0
+    u = 1.0
     r :: Radius
     r = playerCircleRadius
 
@@ -261,7 +261,7 @@ makePlayerBullet l d = Bullet PlayerBullet l (makeVector E 3) d bulletRadius 1
 
 -- make an enemy bullet, moving left
 makeEnemyBullet :: Location -> Damage -> Bullet
-makeEnemyBullet l d = Bullet EnemyBullet l (makeVector W 3) d bulletRadius 1
+makeEnemyBullet l d = Bullet EnemyBullet l (makeVector W 4) d bulletRadius 1
 
 -- make a vector, given a direction and speed
 makeVector :: Direction -> Speed -> Vector

@@ -7,8 +7,8 @@ view :: GameState -> IO Picture
 view = return . viewPure
 
 viewPure :: GameState -> Picture
-viewPure (GameState _ _ _ _ Paused)   = Text "Paused"
-viewPure (GameState _ _ _ _ GameOver) = Text "Game Over"
+viewPure (GameState _ _ _ _ Paused)   = Translate (-windowWidth*0.35) 0 (Text "Paused")
+viewPure (GameState _ _ _ _ GameOver) = Translate (-windowWidth*0.35) 0 (Text "Game Over")
 viewPure (GameState s t w _ Running)  = p <> q <> r
   where 
     p :: Picture
