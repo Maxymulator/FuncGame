@@ -74,16 +74,23 @@ handleMovement (GameState s t world g rs) = GameState s t (worldUpdateMovement w
 {- Enemy behaviour -}
 -- When an enemy will spawn
 handleSpawning :: GameState -> GameState
-handleSpawning (GameState s t world g rs) | round t `mod` 11 == 0  = spawnEnemy (GameState s t world g rs) Standard
+handleSpawning (GameState s t world g rs) | timed `mod` 11 == 0  = spawnEnemy (GameState s t world g rs) Standard
                                           | (s+1) `mod` 1001 == 0  = spawnEnemy (GameState (s+1) t world g rs) Boss
                                           | otherwise              = (GameState s t world g rs)
+                 where
+                  timed :: Integer
+                  timed = round t
+                                      
                                   
                                           
 
 -- When an enemy will shoot
 handleShooting :: GameState -> GameState
-handleShooting (GameState s t world g rs) | round t `mod` 6 == 0  = enemyShoots (GameState s t world g rs)
+handleShooting (GameState s t world g rs) | timed `mod` 6 == 0  = enemyShoots (GameState s t world g rs)
                                           | otherwise             = (GameState s t world g rs)
+                     where
+                       timed :: Integer
+                       timed = round t
 
 -- Update all movement in the world
 worldUpdateMovement :: World -> World
